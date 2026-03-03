@@ -25,6 +25,7 @@
             overflow: hidden;
         }
 
+        /* Thanh công cụ trên cùng */
         .toolbar {
             background: #2d2d2d;
             padding: 12px 20px;
@@ -95,54 +96,7 @@
             background: #5a5a5a;
         }
 
-        /* Dropdown tăng ca */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background: #2d2d2d;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            border-radius: 6px;
-            padding: 8px 0;
-            z-index: 1000;
-            top: 100%;
-            left: 0;
-            border: 1px solid #3e3e3e;
-        }
-
-        .dropdown-content.show {
-            display: block;
-        }
-
-        .dropdown-item {
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #e0e0e0;
-            font-size: 13px;
-        }
-
-        .dropdown-item:hover {
-            background: #3e3e3e;
-        }
-
-        .dropdown-item input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-
-        .dropdown-item label {
-            cursor: pointer;
-            flex: 1;
-        }
-
+        /* Khu vực chính: pool đơn hàng (trái) + timeline (phải) */
         .main-layout {
             display: flex;
             flex: 1;
@@ -150,6 +104,7 @@
             min-height: 0;
         }
 
+        /* Pool đơn hàng chưa gán */
         .wo-pool {
             width: 300px;
             background: #252526;
@@ -214,6 +169,7 @@
             color: #aaa;
         }
 
+        /* Timeline container */
         .timeline-container {
             flex: 1;
             display: flex;
@@ -229,6 +185,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         #timeline {
@@ -236,6 +193,7 @@
             background: #1e1e1e;
         }
 
+        /* Tùy chỉnh giao diện vis-timeline */
         .vis-timeline {
             border: none;
             font-family: inherit;
@@ -292,6 +250,64 @@
             color: #aaa;
         }
 
+        /* Dropdown tăng ca */
+        .overtime-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #2d2d2d;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            border-radius: 6px;
+            padding: 12px;
+            z-index: 1000;
+            border: 1px solid #3e3e3e;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+        }
+
+        .day-checkbox input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .day-checkbox label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .dropdown-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            border-top: 1px solid #3e3e3e;
+            padding-top: 12px;
+        }
+
+        .dropdown-footer button {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        /* Nút điều khiển nhỏ */
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -302,16 +318,24 @@
 <body>
     <div class="toolbar">
         <div class="file-input-group">
-            <label><i class="fas fa-file-excel"></i> Chọn cả 2 file:</label>
-            <input type="file" id="fileInput" multiple accept=".xlsm,.xlsx">
+            <label><i class="fas fa-file-excel"></i> File QLSX 2026:</label>
+            <input type="file" id="file1" accept=".xlsm,.xlsx">
+        </div>
+        <div class="file-input-group">
+            <label><i class="fas fa-file-excel"></i> File NK SX TDB:</label>
+            <input type="file" id="file2" accept=".xlsm,.xlsx">
         </div>
         <button id="processBtn"><i class="fas fa-cogs"></i> Xử lý & tạo kế hoạch</button>
         
         <!-- Dropdown tăng ca -->
-        <div class="dropdown" id="overtimeDropdown">
-            <button class="secondary" id="overtimeBtn"><i class="fas fa-clock"></i> Bật tăng ca</button>
-            <div class="dropdown-content" id="overtimeMenu">
-                <!-- sẽ được tạo động -->
+        <div class="overtime-dropdown">
+            <button id="overtimeBtn" class="secondary"><i class="fas fa-clock"></i> Chọn ngày tăng ca ▼</button>
+            <div id="overtimeDropdown" class="dropdown-content">
+                <div id="overtimeDays"></div>
+                <div class="dropdown-footer">
+                    <button id="applyOvertime" class="secondary">Áp dụng</button>
+                    <button id="closeDropdown">Đóng</button>
+                </div>
             </div>
         </div>
 
@@ -323,6 +347,7 @@
     </div>
 
     <div class="main-layout">
+        <!-- Pool đơn hàng chưa gán / đã gán -->
         <div class="wo-pool">
             <div class="pool-header">
                 <i class="fas fa-clipboard-list"></i> Đơn hàng sản xuất
@@ -330,6 +355,7 @@
             <div class="pool-list" id="woList"></div>
         </div>
 
+        <!-- Khu vực timeline -->
         <div class="timeline-container">
             <div class="timeline-header">
                 <span><i class="fas fa-calendar-alt"></i> 6 ngày từ hôm nay</span>
@@ -339,49 +365,35 @@
         </div>
     </div>
 
+    <!-- Thư viện hỗ trợ -->
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/vis-timeline@7.7.4/standalone/vis-timeline-graph2d.min.js"></script>
     <script>
         (function(){
-            // Dữ liệu toàn cục
-            let woList = [];
-            let productTimeMap = new Map();
-            let assignedWO = new Set();
+            // ---------- DỮ LIỆU TOÀN CỤC ----------
+            let woList = [];                // danh sách đơn hàng từ file1
+            let productTimeMap = new Map(); // Map<tên sản phẩm, {durationHours, maxSanLuong}>
+            let assignedWO = new Set();      // tập các WO id đã được đưa lên timeline
             let timelineItems = new vis.DataSet([]);
             let timeline = null;
             let groups = null;
-            let copiedItem = null;
-            let selectedOvertimeDays = []; // mảng index ngày (0-5)
+            let copiedItem = null;           // lưu item sao chép
+            let selectedOvertimeDays = [];    // mảng index ngày được chọn (0-5)
 
-            const machines = ['Máy 01', 'Máy 02', 'Máy 03', 'Máy 04', 'Máy 05', 'Máy 06', 'Máy 07', 'Máy 08'];
+            // Cấu hình máy (01-08)
+            const machines = [
+                'Máy 01', 'Máy 02', 'Máy 03', 'Máy 04',
+                'Máy 05', 'Máy 06', 'Máy 07', 'Máy 08'
+            ];
             const machineIds = machines.map((_, i) => i);
 
+            // Khoảng thời gian 6 ngày từ hôm nay (bắt đầu từ 00:00 hôm nay)
             const now = new Date();
             const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
             const endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + 6);
+            endDate.setDate(startDate.getDate() + 6); // 6 ngày sau, lấy đến cuối ngày
 
-            // Hàm parse Excel date serial
-            function excelSerialToDate(serial) {
-                // Excel serial: 1 = 1/1/1900; JavaScript: 1/1/1970 = 25569
-                return new Date((serial - 25569) * 86400 * 1000);
-            }
-
-            // Đọc file và tự phân biệt
-            async function readFiles(files) {
-                let file1 = null, file2 = null;
-                for (let file of files) {
-                    if (file.name.includes('QUAN LY SAN XUAT 2026')) file1 = file;
-                    else if (file.name.includes('NHAT KY SAN XUAT TDB')) file2 = file;
-                }
-                if (!file1 || !file2) {
-                    throw new Error('Cần đủ 2 file: "QUAN LY SAN XUAT 2026" và "NHAT KY SAN XUAT TDB"');
-                }
-                const wb1 = await readFile(file1);
-                const wb2 = await readFile(file2);
-                return { wb1, wb2 };
-            }
-
+            // ---------- HÀM ĐỌC EXCEL VÀ XỬ LÝ ----------
             function readFile(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -399,24 +411,61 @@
                 });
             }
 
+            // Chuyển đổi Excel date serial thành Date object
+            function excelSerialToDate(serial) {
+                if (typeof serial !== 'number') return null;
+                // Excel ngày 1/1/1900 = 1, JavaScript ngày 1/1/1970 = 0
+                // (serial - 25569) là số ngày từ 1/1/1970
+                const utcDays = serial - 25569;
+                const utcMs = utcDays * 86400 * 1000;
+                return new Date(utcMs);
+            }
+
+            // Parse giá trị ô Excel có thể là số hoặc chuỗi
+            function parseExcelDate(value) {
+                if (!value) return null;
+                if (typeof value === 'number') {
+                    return excelSerialToDate(value);
+                }
+                if (typeof value === 'string') {
+                    // Thử parse chuỗi
+                    const d = new Date(value);
+                    if (!isNaN(d)) return d;
+                    // Xử lý định dạng dd/mm/yyyy
+                    const parts = value.split(/[\/\-]/);
+                    if (parts.length === 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        return new Date(year, month, day);
+                    }
+                }
+                return null;
+            }
+
             function parseFile1(workbook) {
                 const sheetName = 'KHSX';
                 const sheet = workbook.Sheets[sheetName];
-                if (!sheet) throw new Error('Không tìm thấy sheet KHSX trong file 1');
+                if (!sheet) {
+                    alert('Không tìm thấy sheet KHSX trong file 1!');
+                    return [];
+                }
                 const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                // Bắt đầu từ dòng 9 (index 8)
                 const woData = [];
                 for (let i = 8; i < rows.length; i++) {
                     const row = rows[i];
-                    if (!row[0] || row[0].toString().trim() === '') continue;
+                    if (!row[0] || row[0].toString().trim() === '') continue; // bỏ dòng trống
                     const wo = {
-                        id: `wo_${i}_${Date.now()}_${Math.random()}`,
+                        id: `wo_${i}_${Date.now()}_${Math.random()}`, // unique id
                         soWO: row[0]?.toString().trim() || '',
                         khachHang: row[3]?.toString().trim() || '',
                         tenSanPham: row[5]?.toString().trim() || '',
                         kichThuoc: row[6]?.toString().trim() || '',
                         soLuong: parseFloat(row[7]) || 0,
-                        donVi: row[5]?.toString().trim() || '',
+                        donVi: row[5]?.toString().trim() || '', // tạm lấy cột F làm đơn vị
                     };
+                    // Tính thời gian dự kiến dựa trên file2
                     wo.estimatedHours = estimateHours(wo.tenSanPham, wo.soLuong);
                     woData.push(wo);
                 }
@@ -426,24 +475,20 @@
             function parseFile2(workbook) {
                 const sheetName = 'NHATKY_SX';
                 const sheet = workbook.Sheets[sheetName];
-                if (!sheet) throw new Error('Không tìm thấy sheet NHATKY_SX trong file 2');
+                if (!sheet) {
+                    alert('Không tìm thấy sheet NHATKY_SX trong file 2!');
+                    return;
+                }
                 const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                const productRecords = new Map();
-
+                // Bắt đầu từ dòng 3 (index 2)
+                const productRecords = new Map(); // tạm lưu để tìm max sản lượng
                 for (let i = 2; i < rows.length; i++) {
                     const row = rows[i];
                     if (!row[1] || row[1].toString().trim() === '') continue;
-                    const tenSP = row[1].toString().trim();
+                    const tenSP = row[1]?.toString().trim();
                     const sanLuong = parseFloat(row[8]) || 0;
-                    
-                    let startTime = null, endTime = null;
-                    // Cột J (index 9) và K (index 10)
-                    if (typeof row[9] === 'number') startTime = excelSerialToDate(row[9]);
-                    else if (row[9]) startTime = new Date(row[9]);
-                    
-                    if (typeof row[10] === 'number') endTime = excelSerialToDate(row[10]);
-                    else if (row[10]) endTime = new Date(row[10]);
-
+                    const startTime = parseExcelDate(row[9]);
+                    const endTime = parseExcelDate(row[10]);
                     if (!startTime || !endTime || sanLuong === 0) continue;
                     const duration = (endTime - startTime) / (1000 * 60 * 60); // giờ
                     if (duration <= 0) continue;
@@ -455,18 +500,21 @@
                         });
                     }
                 }
-
+                // Chuyển vào Map chính
                 productRecords.forEach((value, key) => {
                     productTimeMap.set(key, value);
                 });
+                console.log('Product time map:', productTimeMap);
             }
 
             function estimateHours(productName, quantity) {
-                if (!productTimeMap.has(productName) || quantity === 0) return 4; // default 4h
+                if (!productTimeMap.has(productName) || quantity === 0) return 4; // mặc định 4h (1 session)
                 const rec = productTimeMap.get(productName);
+                // Thời gian = (duration / maxSL) * quantity
                 return (rec.durationHours / rec.maxSanLuong) * quantity;
             }
 
+            // Hiển thị danh sách WO trong pool
             function renderWOPool() {
                 const container = document.getElementById('woList');
                 container.innerHTML = '';
@@ -485,6 +533,7 @@
                             <span>${wo.estimatedHours.toFixed(1)}h</span>
                         </div>
                     `;
+                    // Kéo thả
                     div.addEventListener('dragstart', (e) => {
                         if (assigned) {
                             e.preventDefault();
@@ -497,11 +546,18 @@
                 });
             }
 
+            // Khởi tạo timeline
             function initTimeline() {
                 const container = document.getElementById('timeline');
                 if (timeline) timeline.destroy();
 
-                groups = new vis.DataSet(machines.map((name, idx) => ({ id: idx, content: name })));
+                // Groups: các máy
+                groups = new vis.DataSet(machines.map((name, idx) => ({
+                    id: idx,
+                    content: name,
+                })));
+
+                // Items: ban đầu rỗng
                 timelineItems.clear();
 
                 const options = {
@@ -532,6 +588,7 @@
 
                 timeline = new vis.Timeline(container, timelineItems, groups, options);
 
+                // Xử lý drop từ pool vào timeline
                 container.addEventListener('dragover', (e) => e.preventDefault());
                 container.addEventListener('drop', (e) => {
                     e.preventDefault();
@@ -539,15 +596,18 @@
                     const wo = woList.find(w => w.id === woId);
                     if (!wo || assignedWO.has(wo.id)) return;
 
+                    // Lấy vị trí thả
                     const props = timeline.getEventProperties(e);
-                    const group = props.group;
-                    if (group === undefined) return;
+                    const group = props.group; // group id (0-7)
+                    if (group === undefined) return; // thả ngoài vùng máy
 
+                    // Thời gian thả (là thời điểm chuột)
                     let start = props.time;
-                    if (!start) start = new Date();
+                    if (!start) start = new Date(); // fallback
 
                     const end = new Date(start.getTime() + wo.estimatedHours * 3600000);
 
+                    // Tạo item mới
                     const newItem = {
                         id: wo.id,
                         group: group,
@@ -561,25 +621,49 @@
                     renderWOPool();
                 });
 
+                // Lắng nghe sự kiện khi item bị xóa (ví dụ nhấn Delete hoặc dùng nút Cut)
                 timeline.on('remove', (props) => {
                     props.items.forEach(itemId => {
                         assignedWO.delete(itemId);
                     });
                     renderWOPool();
                 });
+
+                // Khi item thay đổi (move, resize) - có thể cập nhật nếu cần
             }
 
-            // Cập nhật background tăng ca dựa trên các ngày được chọn
-            function updateOvertimeBackground() {
-                // Xóa background cũ
+            // Tạo dropdown các ngày để chọn tăng ca
+            function renderOvertimeDays() {
+                const container = document.getElementById('overtimeDays');
+                container.innerHTML = '';
+                for (let i = 0; i < 6; i++) {
+                    const day = new Date(startDate);
+                    day.setDate(startDate.getDate() + i);
+                    const dateStr = day.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+                    const checked = selectedOvertimeDays.includes(i) ? 'checked' : '';
+                    const div = document.createElement('div');
+                    div.className = 'day-checkbox';
+                    div.innerHTML = `
+                        <input type="checkbox" id="ot_day_${i}" value="${i}" ${checked}>
+                        <label for="ot_day_${i}">${dateStr}</label>
+                    `;
+                    container.appendChild(div);
+                }
+            }
+
+            // Áp dụng tăng ca cho các ngày được chọn
+            function applyOvertime() {
+                // Lấy các checkbox được chọn
+                const checkboxes = document.querySelectorAll('#overtimeDays input[type="checkbox"]:checked');
+                selectedOvertimeDays = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+                
+                // Xóa các background items cũ
                 const backgroundItems = timelineItems.get({
                     filter: item => item.className === 'overtime-bg'
                 });
                 backgroundItems.forEach(item => timelineItems.remove(item.id));
 
-                if (!selectedOvertimeDays.length) return;
-
-                // Tạo background cho từng ngày được chọn
+                // Thêm background cho mỗi ngày được chọn
                 selectedOvertimeDays.forEach(dayIndex => {
                     const dayStart = new Date(startDate);
                     dayStart.setDate(startDate.getDate() + dayIndex);
@@ -598,64 +682,19 @@
                         style: 'background-color: rgba(255,193,7,0.15); border: none;',
                     });
                 });
+
+                // Đóng dropdown
+                document.getElementById('overtimeDropdown').classList.remove('show');
             }
 
-            // Tạo menu dropdown cho tăng ca
-            function populateOvertimeMenu() {
-                const menu = document.getElementById('overtimeMenu');
-                menu.innerHTML = '';
-                for (let i = 0; i < 6; i++) {
-                    const date = new Date(startDate);
-                    date.setDate(startDate.getDate() + i);
-                    const dateStr = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-                    const dayName = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][date.getDay()];
-                    
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'dropdown-item';
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.value = i;
-                    cb.id = `ot_day_${i}`;
-                    cb.checked = selectedOvertimeDays.includes(i);
-                    cb.addEventListener('change', (e) => {
-                        const val = parseInt(e.target.value);
-                        if (e.target.checked) {
-                            if (!selectedOvertimeDays.includes(val)) selectedOvertimeDays.push(val);
-                        } else {
-                            selectedOvertimeDays = selectedOvertimeDays.filter(d => d !== val);
-                        }
-                        updateOvertimeBackground();
-                    });
-                    const label = document.createElement('label');
-                    label.htmlFor = `ot_day_${i}`;
-                    label.textContent = `Ngày ${dateStr} (${dayName})`;
-                    
-                    itemDiv.appendChild(cb);
-                    itemDiv.appendChild(label);
-                    menu.appendChild(itemDiv);
-                }
-            }
-
-            // Xử lý dropdown hiện/ẩn
-            document.getElementById('overtimeBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                const menu = document.getElementById('overtimeMenu');
-                menu.classList.toggle('show');
-            });
-
-            // Click ngoài dropdown thì đóng
-            window.addEventListener('click', () => {
-                document.getElementById('overtimeMenu').classList.remove('show');
-            });
-
-            // Cut, copy, paste
+            // Xử lý nút Cut
             function cutSelected() {
                 const selection = timeline.getSelection();
-                if (selection && selection.items && selection.items.length) {
+                if (selection && selection.items && selection.items.length > 0) {
                     const itemId = selection.items[0];
                     const item = timelineItems.get(itemId);
                     if (item) {
-                        copiedItem = { ...item };
+                        copiedItem = { ...item }; // sao chép để paste
                         timelineItems.remove(itemId);
                         assignedWO.delete(itemId);
                         renderWOPool();
@@ -663,9 +702,10 @@
                 }
             }
 
+            // Copy
             function copySelected() {
                 const selection = timeline.getSelection();
-                if (selection && selection.items && selection.items.length) {
+                if (selection && selection.items && selection.items.length > 0) {
                     const itemId = selection.items[0];
                     const item = timelineItems.get(itemId);
                     if (item) {
@@ -674,10 +714,12 @@
                 }
             }
 
+            // Paste: tạo mới với id mới, cùng group, bắt đầu sau item cũ 1 giờ
             function pasteItem() {
                 if (!copiedItem) return;
-                const newStart = new Date(copiedItem.end.getTime() + 3600000);
+                const newStart = new Date(copiedItem.end.getTime() + 3600000); // +1h
                 const newEnd = new Date(newStart.getTime() + (copiedItem.end - copiedItem.start));
+
                 const newId = `wo_copy_${Date.now()}_${Math.random()}`;
                 const newItem = {
                     ...copiedItem,
@@ -686,45 +728,82 @@
                     end: newEnd,
                 };
                 timelineItems.add(newItem);
-                // Không thêm vào assignedWO vì không phải WO gốc
+                // Không đánh dấu assignedWO vì đây là bản sao
             }
 
             // Xử lý nút Process
             document.getElementById('processBtn').addEventListener('click', async () => {
-                const fileInput = document.getElementById('fileInput');
-                if (!fileInput.files || fileInput.files.length < 2) {
-                    alert('Vui lòng chọn 2 file!');
+                const file1Input = document.getElementById('file1');
+                const file2Input = document.getElementById('file2');
+                const file1 = file1Input.files[0];
+                const file2 = file2Input.files[0];
+                
+                if (!file1 || !file2) {
+                    alert('Vui lòng chọn cả 2 file!');
                     return;
                 }
 
+                // Tự động phân biệt file theo tên (nếu cần, nhưng không bắt buộc)
+                // Ở đây chúng ta dùng file1 và file2 theo thứ tự người dùng chọn
+                // Nhưng có thể kiểm tra tên để chắc chắn
+                if (!file1.name.includes('QUAN LY SAN XUAT') && !file1.name.includes('2026')) {
+                    console.warn('File 1 có thể không đúng: ', file1.name);
+                }
+                if (!file2.name.includes('NHAT KY SAN XUAT') && !file2.name.includes('TDB')) {
+                    console.warn('File 2 có thể không đúng: ', file2.name);
+                }
+
                 try {
-                    const { wb1, wb2 } = await readFiles(fileInput.files);
-                    productTimeMap.clear(); // reset
+                    // Đọc file2 trước để có map thời gian
+                    const wb2 = await readFile(file2);
                     parseFile2(wb2);
+
+                    const wb1 = await readFile(file1);
                     woList = parseFile1(wb1);
-                    
+
+                    // Reset assigned
                     assignedWO.clear();
+                    // Xóa hết item trong timeline
                     timelineItems.clear();
+                    // Render pool
                     renderWOPool();
 
-                    // Reset overtime selection
-                    selectedOvertimeDays = [];
-                    updateOvertimeBackground();
-                    populateOvertimeMenu(); // cập nhật checkbox
+                    alert('Đã xử lý thành công! Có ' + woList.length + ' đơn hàng.');
                 } catch (err) {
                     console.error(err);
-                    alert('Lỗi: ' + err.message);
+                    alert('Lỗi xử lý file: ' + err.message);
                 }
             });
 
-            // Khởi tạo timeline và menu khi trang load
+            // Khởi tạo timeline và các sự kiện khi trang load
             window.addEventListener('load', () => {
                 initTimeline();
-                populateOvertimeMenu();
+                renderOvertimeDays();
 
+                // Gắn sự kiện cho các nút
                 document.getElementById('cutBtn').addEventListener('click', cutSelected);
                 document.getElementById('copyBtn').addEventListener('click', copySelected);
                 document.getElementById('pasteBtn').addEventListener('click', pasteItem);
+
+                // Dropdown tăng ca
+                const overtimeBtn = document.getElementById('overtimeBtn');
+                const dropdown = document.getElementById('overtimeDropdown');
+                overtimeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('show');
+                });
+
+                document.getElementById('applyOvertime').addEventListener('click', applyOvertime);
+                document.getElementById('closeDropdown').addEventListener('click', () => {
+                    dropdown.classList.remove('show');
+                });
+
+                // Đóng dropdown khi click ra ngoài
+                window.addEventListener('click', (e) => {
+                    if (!overtimeBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.classList.remove('show');
+                    }
+                });
             });
 
         })();
