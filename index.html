@@ -3,810 +3,879 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kế hoạch sản xuất theo timeline</title>
-    <!-- vis-timeline stylesheet -->
-    <link href="https://unpkg.com/vis-timeline@7.7.4/styles/vis-timeline-graph2d.min.css" rel="stylesheet">
-    <!-- Font Awesome for icons -->
+    <title>Kế hoạch sản xuất | TDB</title>
+    <!-- Thư viện xử lý Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- html2canvas để xuất ảnh -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Font Awesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
-
-        body {
             font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-            background: #1e1e1e;
+            user-select: none;
+        }
+        body {
+            background: #0c0c14;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             color: #e0e0e0;
+            padding: 0;
+        }
+        .app {
+            width: 100%;
             height: 100vh;
+            background: #161822;
+            border-radius: 0;
+            box-shadow: none;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border: none;
         }
-
-        /* Thanh công cụ trên cùng */
-        .toolbar {
-            background: #2d2d2d;
-            padding: 12px 20px;
+        /* header */
+        .app-header {
+            padding: 12px 24px;
+            background: #10121c;
+            border-bottom: 1px solid #2f334c;
             display: flex;
-            gap: 20px;
             align-items: center;
-            border-bottom: 1px solid #3e3e3e;
+            justify-content: space-between;
             flex-wrap: wrap;
+            gap: 16px;
         }
-
-        .file-input-group {
+        .logo h2 {
+            font-weight: 400;
+            color: #b9bbd4;
+            font-size: 1.3rem;
+        }
+        .logo span {
+            color: #6d8eff;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .upload-area {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .file-input {
+            position: relative;
+            background: #262a40;
+            border-radius: 40px;
+            padding: 6px 18px;
             display: flex;
             align-items: center;
             gap: 8px;
-            background: #3e3e3e;
-            padding: 6px 12px;
-            border-radius: 6px;
+            border: 1px solid #454c73;
+            cursor: pointer;
+            transition: 0.2s;
+            overflow: hidden;
         }
-
-        .file-input-group label {
-            font-size: 13px;
+        .file-input input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            font-size: 0;
+        }
+        .file-label {
+            font-size: 0.9rem;
             font-weight: 500;
-            color: #ccc;
+            color: #c5c8e7;
+            white-space: nowrap;
         }
-
-        .file-input-group input {
-            background: transparent;
-            color: #fff;
-            border: none;
-            font-size: 13px;
-            width: 200px;
+        .badge {
+            background: #32385a;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.9rem;
+            color: #b9c2ff;
+            border: 1px solid #5f68a0;
         }
-
-        .file-input-group input::file-selector-button {
-            background: #0d6efd;
-            color: white;
+        /* thanh công cụ */
+        .toolbar {
+            padding: 12px 24px;
+            background: #121422;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #2f334c;
+        }
+        .tool-btn {
+            background: #262b44;
             border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
+            color: #d7daff;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             cursor: pointer;
-            margin-right: 8px;
+            transition: 0.15s;
+            border: 1px solid #4a5080;
         }
-
-        button {
-            background: #0d6efd;
+        .tool-btn:hover {
+            background: #333a60;
+            border-color: #7c85ff;
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
+        }
+        .tool-btn i {
+            font-size: 1rem;
+            color: #8d9aff;
+        }
+        .ot-control {
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: 0.2s;
+            margin-left: auto;
         }
-
-        button:hover {
-            background: #0b5ed7;
+        .ot-control select {
+            background: #262b44;
+            color: white;
+            border-radius: 30px;
+            padding: 8px 16px;
+            border: 1px solid #51579c;
+            outline: none;
         }
-
-        button.secondary {
-            background: #4a4a4a;
-        }
-
-        button.secondary:hover {
-            background: #5a5a5a;
-        }
-
-        /* Khu vực chính: pool đơn hàng (trái) + timeline (phải) */
-        .main-layout {
+        /* khu vực chính */
+        .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
-            min-height: 0;
+            background: #0f111c;
         }
-
-        /* Pool đơn hàng chưa gán */
-        .wo-pool {
-            width: 300px;
-            background: #252526;
-            border-right: 1px solid #3e3e3e;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .pool-header {
+        /* panel danh sách công việc (WO) */
+        .wo-panel {
+            width: 320px;
+            background: #141725;
+            border-right: 1px solid #2d3150;
             padding: 16px;
-            background: #2a2a2a;
-            border-bottom: 1px solid #3e3e3e;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 14px;
-        }
-
-        .pool-list {
-            flex: 1;
             overflow-y: auto;
-            padding: 12px;
+            flex-shrink: 0;
         }
-
+        .wo-panel h3 {
+            font-weight: 400;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8f94bb;
+            margin-bottom: 16px;
+        }
         .wo-item {
-            background: #2d2d2d;
-            border-left: 4px solid #0d6efd;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            font-size: 13px;
+            background: #212536;
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-left: 6px solid;
+            box-shadow: 0 5px 0 #0e111c;
             cursor: grab;
             transition: 0.1s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            user-select: none;
+            border: 1px solid #41476e;
+            color: #eaeefb;
+            position: relative;
         }
-
-        .wo-item.assigned {
-            background: #3a3a3a;
-            border-left-color: #6c757d;
-            opacity: 0.6;
-            cursor: not-allowed;
+        .wo-item:active {
+            cursor: grabbing;
+            opacity: 0.8;
         }
-
-        .wo-item:hover:not(.assigned) {
-            background: #3e3e3e;
-            transform: translateX(2px);
+        .wo-item.placed {
+            opacity: 0.4;
+            background: #2e3253;
+            border-left-color: #6d6d6d !important;
+            filter: grayscale(0.7);
+            pointer-events: none;
         }
-
-        .wo-item strong {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 4px;
-            color: #fff;
+        .wo-item .wo-code {
+            font-weight: 700;
+            font-size: 1rem;
         }
-
-        .wo-item .details {
+        .wo-item .wo-detail {
+            font-size: 0.8rem;
+            color: #b2bbf0;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            color: #aaa;
+            gap: 10px;
+            margin-top: 4px;
         }
-
-        /* Timeline container */
-        .timeline-container {
+        .wo-item .wo-giao {
+            font-size: 0.75rem;
+            color: #ffd966;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .wo-item .wo-ghichu {
+            color: #b2b2ff;
+        }
+        /* timeline container */
+        .timeline-wrapper {
             flex: 1;
+            overflow-x: auto;
+            overflow-y: auto;
+            position: relative;
+            background: #0a0b14;
+        }
+        .timeline-grid {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            background: #1e1e1e;
+            min-width: max-content;
         }
-
-        .timeline-header {
-            padding: 12px 20px;
-            background: #2a2a2a;
-            border-bottom: 1px solid #3e3e3e;
+        /* header ngày - mỗi ngày chia thành các shift */
+        .days-header {
             display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
+            background: #1b1e30;
+            border-bottom: 2px solid #3a3f6b;
+            position: sticky;
+            top: 0;
+            z-index: 5;
         }
-
-        #timeline {
-            flex: 1;
-            background: #1e1e1e;
+        .machine-label-header {
+            width: 70px;
+            flex-shrink: 0;
+            background: #1b1e30;
+            border-right: 2px solid #4f5485;
         }
-
-        /* Tùy chỉnh giao diện vis-timeline */
-        .vis-timeline {
-            border: none;
-            font-family: inherit;
+        .day-shift-group {
+            display: flex;
+            height: 100%;
         }
-
-        .vis-panel.vis-bottom {
-            border-top: 1px solid #3e3e3e;
-        }
-
-        .vis-grid.vis-major {
-            border-color: #3e3e3e;
-        }
-
-        .vis-grid.vis-minor {
-            border-color: #2a2a2a;
-        }
-
-        .vis-item {
-            border-radius: 4px;
-            font-size: 12px;
-            padding: 2px 8px;
-            background: #0d6efd;
-            border: none;
-            color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-
-        .vis-item.vis-selected {
-            background: #ffc107;
-            color: #000;
-            border: 2px solid #fff;
-        }
-
-        .vis-item .vis-item-overflow {
-            overflow: visible;
-        }
-
-        .vis-label {
-            color: #e0e0e0;
+        .shift-header {
+            text-align: center;
+            padding: 8px 0;
             font-weight: 600;
-            font-size: 14px;
-            border-right: 1px solid #3e3e3e;
+            background: #1b1e30;
+            border-right: 1px solid #3e4570;
+            color: #cfd6ff;
         }
-
-        .vis-group {
-            border-bottom: 1px solid #3e3e3e;
+        .shift-header .date {
+            font-size: 0.9rem;
         }
-
-        .vis-background {
-            background: #1e1e1e;
+        .shift-header .shift-label {
+            font-size: 0.7rem;
+            color: #9da4e0;
         }
-
-        .vis-time-axis .vis-text {
-            color: #aaa;
-        }
-
-        /* Dropdown tăng ca */
-        .overtime-dropdown {
+        /* các hàng máy */
+        .machine-row {
+            display: flex;
+            height: 100px;
+            border-bottom: 1px solid #2d3257;
             position: relative;
-            display: inline-block;
         }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: #2d2d2d;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-            border-radius: 6px;
-            padding: 12px;
-            z-index: 1000;
-            border: 1px solid #3e3e3e;
-        }
-
-        .dropdown-content.show {
-            display: block;
-        }
-
-        .day-checkbox {
+        .machine-label {
+            width: 70px;
+            background: #181c2b;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            color: #e0e0e0;
+            justify-content: center;
+            font-weight: 600;
+            color: #c3c9ff;
+            border-right: 2px solid #4f5485;
+            flex-shrink: 0;
+            font-size: 1.1rem;
         }
-
-        .day-checkbox input {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-
-        .day-checkbox label {
-            cursor: pointer;
+        .machine-timeline {
             flex: 1;
-        }
-
-        .dropdown-footer {
             display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 12px;
-            border-top: 1px solid #3e3e3e;
-            padding-top: 12px;
+            position: relative;
+            background: #0f1221;
+            height: 100%;
         }
-
-        .dropdown-footer button {
-            padding: 4px 12px;
-            font-size: 12px;
+        .time-slot {
+            height: 100%;
+            border-right: 1px dashed #3b416b;
+            flex-shrink: 0;
+            position: relative;
+            background: rgba(255,255,255,0.01);
         }
-
-        /* Nút điều khiển nhỏ */
-        .action-buttons {
+        .time-slot.morning {
+            background: rgba(90, 120, 255, 0.05);
+        }
+        .time-slot.afternoon {
+            background: rgba(255, 190, 90, 0.05);
+        }
+        .time-slot.ot {
+            background: rgba(200, 120, 255, 0.07);
+        }
+        /* job bar */
+        .job-bar {
+            position: absolute;
+            height: 70px;
+            top: 15px;
+            background: #5f6eb0;
+            border-radius: 12px;
+            border: 2px solid #98a2ff;
+            box-shadow: 0 6px 0 #2d325a;
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: move;
+            z-index: 20;
+            transition: box-shadow 0.1s;
+            min-width: 40px;
             display: flex;
-            gap: 8px;
-            margin-left: auto;
+            flex-direction: column;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .job-bar.selected {
+            box-shadow: 0 0 0 3px #ffd966;
+            z-index: 100;
+        }
+        .job-bar .job-size {
+            font-weight: bold;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .job-bar .job-qty {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            cursor: ew-resize;
+            border-radius: 0 12px 12px 0;
         }
     </style>
 </head>
 <body>
+<div class="app" id="app">
+    <div class="app-header">
+        <div class="logo">
+            <h2>📅 Lập lịch sản xuất <span>TDB</span></h2>
+        </div>
+        <div class="upload-area">
+            <div class="file-input" id="file1Input">
+                <i class="fas fa-file-excel"></i>
+                <span class="file-label">1. KHSX 2026</span>
+                <input type="file" id="khsxFile" accept=".xlsm,.xlsx">
+            </div>
+            <div class="file-input" id="file2Input">
+                <i class="fas fa-file-excel"></i>
+                <span class="file-label">2. Nhật ký TDB</span>
+                <input type="file" id="nhatkyFile" accept=".xlsm,.xlsx">
+            </div>
+            <div class="badge" id="fileStatus">⬆️ Chưa tải file</div>
+        </div>
+    </div>
     <div class="toolbar">
-        <div class="file-input-group">
-            <label><i class="fas fa-file-excel"></i> File QLSX 2026:</label>
-            <input type="file" id="file1" accept=".xlsm,.xlsx">
+        <button class="tool-btn" id="addDayBtn"><i class="fas fa-plus-circle"></i> Thêm ngày</button>
+        <button class="tool-btn" id="removeDayBtn"><i class="fas fa-minus-circle"></i> Bớt ngày</button>
+        <div class="ot-control">
+            <button class="tool-btn" id="addOtBtn"><i class="fas fa-clock"></i> Thêm tăng ca</button>
+            <button class="tool-btn" id="removeOtBtn"><i class="fas fa-clock"></i> Bỏ tăng ca</button>
+            <select id="otDaySelect" style="background:#262b44; color:white; border-radius:30px; padding:8px; border:1px solid #51579c;"></select>
         </div>
-        <div class="file-input-group">
-            <label><i class="fas fa-file-excel"></i> File NK SX TDB:</label>
-            <input type="file" id="file2" accept=".xlsm,.xlsx">
+        <button class="tool-btn" id="cutBtn"><i class="fas fa-cut"></i> Chia hai</button>
+        <button class="tool-btn" id="deleteBtn"><i class="fas fa-trash"></i> Xóa</button>
+        <button class="tool-btn" id="exportImgBtn"><i class="fas fa-camera"></i> Xuất JPG</button>
+    </div>
+    <div class="workspace" id="workspace">
+        <div class="wo-panel" id="woPanel">
+            <h3>📦 Đơn hàng đang chờ </h3>
+            <div id="woList"></div>
         </div>
-        <button id="processBtn"><i class="fas fa-cogs"></i> Xử lý & tạo kế hoạch</button>
-        
-        <!-- Dropdown tăng ca -->
-        <div class="overtime-dropdown">
-            <button id="overtimeBtn" class="secondary"><i class="fas fa-clock"></i> Chọn ngày tăng ca ▼</button>
-            <div id="overtimeDropdown" class="dropdown-content">
-                <div id="overtimeDays"></div>
-                <div class="dropdown-footer">
-                    <button id="applyOvertime" class="secondary">Áp dụng</button>
-                    <button id="closeDropdown">Đóng</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="action-buttons">
-            <button id="cutBtn" class="secondary"><i class="fas fa-cut"></i> Cắt</button>
-            <button id="copyBtn" class="secondary"><i class="fas fa-copy"></i> Sao chép</button>
-            <button id="pasteBtn" class="secondary"><i class="fas fa-paste"></i> Dán</button>
+        <div class="timeline-wrapper" id="timelineWrapper">
+            <div class="timeline-grid" id="timelineGrid"></div>
         </div>
     </div>
+</div>
+<script>
+    (function() {
+        // ---------- DỮ LIỆU ----------
+        let woData = [];               
+        let productivityData = {};     
+        let machines = Array.from({ length: 8 }, (_, i) => `Máy ${String(i+1).padStart(2,'0')}`);
+        let jobs = [];                 
+        let totalDays = 3;              
+        let pxPerHour = 35;             
+        let startDate = new Date();      
+        startDate.setHours(0,0,0,0);
+        let otDays = new Set();          
+        let selectedJobId = null;        
+        let dragState = null; // cho di chuyển/resize job
 
-    <div class="main-layout">
-        <!-- Pool đơn hàng chưa gán / đã gán -->
-        <div class="wo-pool">
-            <div class="pool-header">
-                <i class="fas fa-clipboard-list"></i> Đơn hàng sản xuất
-            </div>
-            <div class="pool-list" id="woList"></div>
-        </div>
+        // DOM elements
+        const khsxInput = document.getElementById('khsxFile');
+        const nhatkyInput = document.getElementById('nhatkyFile');
+        const fileStatus = document.getElementById('fileStatus');
+        const woListDiv = document.getElementById('woList');
+        const timelineGrid = document.getElementById('timelineGrid');
+        const addDayBtn = document.getElementById('addDayBtn');
+        const removeDayBtn = document.getElementById('removeDayBtn');
+        const addOtBtn = document.getElementById('addOtBtn');
+        const removeOtBtn = document.getElementById('removeOtBtn');
+        const otDaySelect = document.getElementById('otDaySelect');
+        const cutBtn = document.getElementById('cutBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const exportImgBtn = document.getElementById('exportImgBtn');
 
-        <!-- Khu vực timeline -->
-        <div class="timeline-container">
-            <div class="timeline-header">
-                <span><i class="fas fa-calendar-alt"></i> 6 ngày từ hôm nay</span>
-                <span style="font-size:13px; color:#aaa;">Kéo thả từ danh sách vào máy. Kéo mép để điều chỉnh thời gian.</span>
-            </div>
-            <div id="timeline"></div>
-        </div>
-    </div>
-
-    <!-- Thư viện hỗ trợ -->
-    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/vis-timeline@7.7.4/standalone/vis-timeline-graph2d.min.js"></script>
-    <script>
-        (function(){
-            // ---------- DỮ LIỆU TOÀN CỤC ----------
-            let woList = [];                // danh sách đơn hàng từ file1
-            let productTimeMap = new Map(); // Map<tên sản phẩm, {durationHours, maxSanLuong}>
-            let assignedWO = new Set();      // tập các WO id đã được đưa lên timeline
-            let timelineItems = new vis.DataSet([]);
-            let timeline = null;
-            let groups = null;
-            let copiedItem = null;           // lưu item sao chép
-            let selectedOvertimeDays = [];    // mảng index ngày được chọn (0-5)
-
-            // Cấu hình máy (01-08)
-            const machines = [
-                'Máy 01', 'Máy 02', 'Máy 03', 'Máy 04',
-                'Máy 05', 'Máy 06', 'Máy 07', 'Máy 08'
-            ];
-            const machineIds = machines.map((_, i) => i);
-
-            // Khoảng thời gian 6 ngày từ hôm nay (bắt đầu từ 00:00 hôm nay)
-            const now = new Date();
-            const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-            const endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + 6); // 6 ngày sau, lấy đến cuối ngày
-
-            // ---------- HÀM ĐỌC EXCEL VÀ XỬ LÝ ----------
-            function readFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = new Uint8Array(e.target.result);
-                            const workbook = XLSX.read(data, { type: 'array' });
-                            resolve(workbook);
-                        } catch (err) {
-                            reject(err);
+        // ---------- HÀM ĐỌC EXCEL VỚI PHẢN HỒI ----------
+        async function readExcelFile(file, type) {
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                if (type === 'khsx') {
+                    const sheet = workbook.Sheets['KHSX'];
+                    if (!sheet) { alert('Không tìm thấy sheet KHSX'); return; }
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    woData = [];
+                    for (let i = 8; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row[0] || row[0].toString().trim() === '') continue;
+                        // Giả sử cột I là ngày giao (dạng số excel), cột J là ghi chú
+                        let ngayGiaoExcel = row[8];
+                        let ngayGiao = null;
+                        if (typeof ngayGiaoExcel === 'number') {
+                            ngayGiao = new Date((ngayGiaoExcel - 25569) * 86400 * 1000);
+                        } else {
+                            // Tạo ngày giả để demo
+                            let fakeDate = new Date(startDate);
+                            fakeDate.setDate(startDate.getDate() + Math.floor(Math.random() * 10) + 1);
+                            ngayGiao = fakeDate;
                         }
-                    };
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            // Chuyển đổi Excel date serial thành Date object
-            function excelSerialToDate(serial) {
-                if (typeof serial !== 'number') return null;
-                // Excel ngày 1/1/1900 = 1, JavaScript ngày 1/1/1970 = 0
-                // (serial - 25569) là số ngày từ 1/1/1970
-                const utcDays = serial - 25569;
-                const utcMs = utcDays * 86400 * 1000;
-                return new Date(utcMs);
-            }
-
-            // Parse giá trị ô Excel có thể là số hoặc chuỗi
-            function parseExcelDate(value) {
-                if (!value) return null;
-                if (typeof value === 'number') {
-                    return excelSerialToDate(value);
-                }
-                if (typeof value === 'string') {
-                    // Thử parse chuỗi
-                    const d = new Date(value);
-                    if (!isNaN(d)) return d;
-                    // Xử lý định dạng dd/mm/yyyy
-                    const parts = value.split(/[\/\-]/);
-                    if (parts.length === 3) {
-                        const day = parseInt(parts[0], 10);
-                        const month = parseInt(parts[1], 10) - 1;
-                        const year = parseInt(parts[2], 10);
-                        return new Date(year, month, day);
+                        let ghiChu = row[9] ? row[9].toString().trim() : '';
+                        const wo = {
+                            woCode: row[0]?.toString().trim() || '',
+                            khachHang: row[3]?.toString().trim() || '',
+                            tenSp: row[5]?.toString().trim() || '',
+                            kichThuoc: row[6]?.toString().trim() || '',
+                            soLuong: parseFloat(row[7]) || 0,
+                            donVi: row[5]?.toString().trim() || '',
+                            ngayGiao: ngayGiao,
+                            ghiChu: ghiChu,
+                            id: 'wo_' + Math.random().toString(36).substr(2, 8),
+                            placed: false,
+                        };
+                        woData.push(wo);
                     }
-                }
-                return null;
-            }
-
-            function parseFile1(workbook) {
-                const sheetName = 'KHSX';
-                const sheet = workbook.Sheets[sheetName];
-                if (!sheet) {
-                    alert('Không tìm thấy sheet KHSX trong file 1!');
-                    return [];
-                }
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                // Bắt đầu từ dòng 9 (index 8)
-                const woData = [];
-                for (let i = 8; i < rows.length; i++) {
-                    const row = rows[i];
-                    if (!row[0] || row[0].toString().trim() === '') continue; // bỏ dòng trống
-                    const wo = {
-                        id: `wo_${i}_${Date.now()}_${Math.random()}`, // unique id
-                        soWO: row[0]?.toString().trim() || '',
-                        khachHang: row[3]?.toString().trim() || '',
-                        tenSanPham: row[5]?.toString().trim() || '',
-                        kichThuoc: row[6]?.toString().trim() || '',
-                        soLuong: parseFloat(row[7]) || 0,
-                        donVi: row[5]?.toString().trim() || '', // tạm lấy cột F làm đơn vị
-                    };
-                    // Tính thời gian dự kiến dựa trên file2
-                    wo.estimatedHours = estimateHours(wo.tenSanPham, wo.soLuong);
-                    woData.push(wo);
-                }
-                return woData;
-            }
-
-            function parseFile2(workbook) {
-                const sheetName = 'NHATKY_SX';
-                const sheet = workbook.Sheets[sheetName];
-                if (!sheet) {
-                    alert('Không tìm thấy sheet NHATKY_SX trong file 2!');
-                    return;
-                }
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                // Bắt đầu từ dòng 3 (index 2)
-                const productRecords = new Map(); // tạm lưu để tìm max sản lượng
-                for (let i = 2; i < rows.length; i++) {
-                    const row = rows[i];
-                    if (!row[1] || row[1].toString().trim() === '') continue;
-                    const tenSP = row[1]?.toString().trim();
-                    const sanLuong = parseFloat(row[8]) || 0;
-                    const startTime = parseExcelDate(row[9]);
-                    const endTime = parseExcelDate(row[10]);
-                    if (!startTime || !endTime || sanLuong === 0) continue;
-                    const duration = (endTime - startTime) / (1000 * 60 * 60); // giờ
-                    if (duration <= 0) continue;
-
-                    if (!productRecords.has(tenSP) || sanLuong > productRecords.get(tenSP).maxSanLuong) {
-                        productRecords.set(tenSP, {
-                            maxSanLuong: sanLuong,
-                            durationHours: duration,
-                        });
-                    }
-                }
-                // Chuyển vào Map chính
-                productRecords.forEach((value, key) => {
-                    productTimeMap.set(key, value);
-                });
-                console.log('Product time map:', productTimeMap);
-            }
-
-            function estimateHours(productName, quantity) {
-                if (!productTimeMap.has(productName) || quantity === 0) return 4; // mặc định 4h (1 session)
-                const rec = productTimeMap.get(productName);
-                // Thời gian = (duration / maxSL) * quantity
-                return (rec.durationHours / rec.maxSanLuong) * quantity;
-            }
-
-            // Hiển thị danh sách WO trong pool
-            function renderWOPool() {
-                const container = document.getElementById('woList');
-                container.innerHTML = '';
-                woList.forEach(wo => {
-                    const assigned = assignedWO.has(wo.id);
-                    const div = document.createElement('div');
-                    div.className = `wo-item ${assigned ? 'assigned' : ''}`;
-                    div.setAttribute('draggable', !assigned);
-                    div.dataset.woId = wo.id;
-                    div.innerHTML = `
-                        <strong>${wo.soWO} - ${wo.tenSanPham}</strong>
-                        <div class="details">
-                            <span>${wo.khachHang}</span>
-                            <span>${wo.kichThuoc}</span>
-                            <span>SL: ${wo.soLuong}</span>
-                            <span>${wo.estimatedHours.toFixed(1)}h</span>
-                        </div>
-                    `;
-                    // Kéo thả
-                    div.addEventListener('dragstart', (e) => {
-                        if (assigned) {
-                            e.preventDefault();
-                            return;
-                        }
-                        e.dataTransfer.setData('text/plain', wo.id);
-                        e.dataTransfer.effectAllowed = 'move';
+                    // Sắp xếp: ưu tiên ghi chú chứa "kết hợp" hoặc "xong giao" (không dấu), sau đó ngày giao gần nhất
+                    woData.sort((a, b) => {
+                        let aPriority = (a.ghiChu.toLowerCase().includes('kết hợp') || a.ghiChu.toLowerCase().includes('xong giao')) ? 0 : 1;
+                        let bPriority = (b.ghiChu.toLowerCase().includes('kết hợp') || b.ghiChu.toLowerCase().includes('xong giao')) ? 0 : 1;
+                        if (aPriority !== bPriority) return aPriority - bPriority;
+                        // nếu cùng priority, so sánh ngày giao
+                        if (a.ngayGiao && b.ngayGiao) return a.ngayGiao - b.ngayGiao;
+                        if (a.ngayGiao) return -1;
+                        if (b.ngayGiao) return 1;
+                        return 0;
                     });
-                    container.appendChild(div);
-                });
+                    fileStatus.innerText = `✅ Đã đọc KHSX: ${woData.length} WO`;
+                } else if (type === 'nhatky') {
+                    const sheet = workbook.Sheets['NHATKY_SX'];
+                    if (!sheet) { alert('Không tìm thấy sheet NHATKY_SX'); return; }
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    let prodMap = {};
+                    for (let i = 2; i < rows.length; i++) {
+                        const r = rows[i];
+                        if (!r[1]) continue;
+                        const tenSp = r[1]?.toString().trim();
+                        const sanLuong = parseFloat(r[8]) || 0;
+                        const startTime = r[9]; 
+                        const endTime = r[10];
+                        let startDateObj = (typeof startTime === 'number') ? new Date((startTime - 25569)*86400*1000) : new Date();
+                        let endDateObj = (typeof endTime === 'number') ? new Date((endTime - 25569)*86400*1000) : new Date();
+                        let hours = (endDateObj - startDateObj) / (1000*3600);
+                        if (hours <= 0) continue;
+                        if (!prodMap[tenSp] || prodMap[tenSp].sanLuong < sanLuong) {
+                            prodMap[tenSp] = { sanLuong, hours };
+                        }
+                    }
+                    productivityData = {};
+                    for (let sp in prodMap) {
+                        let p = prodMap[sp];
+                        productivityData[sp] = p.hours / p.sanLuong; 
+                    }
+                    fileStatus.innerText += ' | 📊 Đã đọc Nhật ký';
+                }
+                renderWOList();
+            } catch (error) {
+                alert('Lỗi đọc file: ' + error.message);
             }
+        }
 
-            // Khởi tạo timeline
-            function initTimeline() {
-                const container = document.getElementById('timeline');
-                if (timeline) timeline.destroy();
+        khsxInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) readExcelFile(e.target.files[0], 'khsx');
+        });
+        nhatkyInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) readExcelFile(e.target.files[0], 'nhatky');
+        });
 
-                // Groups: các máy
-                groups = new vis.DataSet(machines.map((name, idx) => ({
-                    id: idx,
-                    content: name,
-                })));
+        function renderWOList() {
+            woListDiv.innerHTML = '';
+            woData.forEach((wo, idx) => {
+                if (wo.placed) return;
+                const div = document.createElement('div');
+                div.className = 'wo-item';
+                div.style.borderLeftColor = `hsl(${idx * 30 % 360}, 70%, 65%)`;
+                div.setAttribute('draggable', 'true');
+                div.dataset.woId = wo.id;
+                let ngayStr = wo.ngayGiao ? wo.ngayGiao.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'}) : '?';
+                let ghiChuStr = wo.ghiChu ? `<span class="wo-ghichu">${wo.ghiChu}</span>` : '';
+                div.innerHTML = `
+                    <div class="wo-code">${wo.woCode}</div>
+                    <div class="wo-detail">
+                        <span>${wo.tenSp}</span> <span>${wo.kichThuoc}</span> <span>SL: ${wo.soLuong}</span>
+                    </div>
+                    <div class="wo-giao">
+                        <span>📅 Giao: ${ngayStr}</span>
+                    </div>
+                `;
+                div.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', wo.id);
+                });
+                woListDiv.appendChild(div);
+            });
+        }
 
-                // Items: ban đầu rỗng
-                timelineItems.clear();
+        function tinhThoiGianCan(wo) {
+            let sp = wo.tenSp;
+            let rate = productivityData[sp];
+            if (!rate) return 4; 
+            return Math.max(1, rate * wo.soLuong);
+        }
 
-                const options = {
-                    stack: false,
-                    groupOrder: 'id',
-                    editable: {
-                        add: false,
-                        remove: true,
-                        updateGroup: true,
-                        updateTime: true,
-                        overrideItems: true,
-                    },
-                    selectable: true,
-                    snap: null,
-                    start: startDate,
-                    end: endDate,
-                    min: startDate,
-                    max: endDate,
-                    zoomable: true,
-                    moveable: true,
-                    orientation: 'top',
-                    horizontalScroll: true,
-                    verticalScroll: true,
-                    rollMode: 'both',
-                    groupHeightMode: 'fixed',
-                    height: '100%',
-                };
+        // ---------- XÂY DỰNG TIMELINE CHI TIẾT ----------
+        function buildTimeline() {
+            let html = '';
+            // Header
+            html += '<div class="days-header">';
+            html += '<div class="machine-label-header" style="width:70px;"></div>';
+            for (let d = 0; d < totalDays; d++) {
+                let dayDate = new Date(startDate);
+                dayDate.setDate(startDate.getDate() + d);
+                let dateStr = dayDate.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+                let shifts = [
+                    { label: 'Sáng 8h-12h', class: 'morning', hours: 4 },
+                    { label: 'Chiều 13h-17h', class: 'afternoon', hours: 4 }
+                ];
+                if (otDays.has(d)) {
+                    shifts.push({ label: 'OT 17:30-21:30', class: 'ot', hours: 4 });
+                }
+                html += `<div class="day-shift-group" style="display:flex;">`;
+                shifts.forEach(shift => {
+                    html += `<div class="shift-header" style="width:${shift.hours * pxPerHour}px;">`;
+                    html += `<div class="date">${dateStr}</div>`;
+                    html += `<div class="shift-label">${shift.label}</div>`;
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            }
+            html += '</div>';
 
-                timeline = new vis.Timeline(container, timelineItems, groups, options);
+            // Các hàng máy
+            for (let m = 0; m < machines.length; m++) {
+                html += `<div class="machine-row" data-machine="${m}">`;
+                html += `<div class="machine-label">${machines[m]}</div>`;
+                html += `<div class="machine-timeline" id="machine-${m}" style="position:relative;">`;
+                for (let d = 0; d < totalDays; d++) {
+                    let shifts = [
+                        { type: 'morning', hours: 4 },
+                        { type: 'afternoon', hours: 4 }
+                    ];
+                    if (otDays.has(d)) {
+                        shifts.push({ type: 'ot', hours: 4 });
+                    }
+                    shifts.forEach(shift => {
+                        html += `<div class="time-slot ${shift.type}" style="width:${shift.hours * pxPerHour}px;" data-day="${d}" data-machine="${m}" data-shift="${shift.type}"></div>`;
+                    });
+                }
+                html += '</div></div>';
+            }
+            timelineGrid.innerHTML = html;
 
-                // Xử lý drop từ pool vào timeline
-                container.addEventListener('dragover', (e) => e.preventDefault());
-                container.addEventListener('drop', (e) => {
+            // Vẽ lại các job
+            jobs.forEach(job => drawJobBar(job));
+            attachMachineDrop();
+        }
+
+        function drawJobBar(job) {
+            const machineDiv = document.getElementById(`machine-${job.machineIndex}`);
+            if (!machineDiv) return;
+            // Kiểm tra nếu job bar đã tồn tại thì xóa cũ
+            const oldBar = document.getElementById(`job-${job.id}`);
+            if (oldBar) oldBar.remove();
+            let bar = document.createElement('div');
+            bar.className = 'job-bar';
+            bar.id = `job-${job.id}`;
+            bar.style.left = job.left + 'px';
+            bar.style.width = job.width + 'px';
+            bar.style.background = job.color;
+            bar.dataset.jobId = job.id;
+            bar.dataset.machine = job.machineIndex;
+            // Chỉ hiển thị kích thước và số lượng
+            bar.innerHTML = `
+                <div class="job-size">${job.kichThuoc}</div>
+                <div class="job-qty">${job.soLuong}</div>
+                <div class="resize-handle"></div>
+            `;
+            // Sự kiện chọn job
+            bar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedJobId) {
+                    let prev = document.getElementById(`job-${selectedJobId}`);
+                    if (prev) prev.classList.remove('selected');
+                }
+                selectedJobId = job.id;
+                bar.classList.add('selected');
+            });
+            // Kéo di chuyển job
+            bar.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('resize-handle')) return;
+                e.preventDefault();
+                const startX = e.clientX;
+                const startLeft = job.left;
+                const machineRect = machineDiv.getBoundingClientRect();
+                const machineWidth = machineDiv.scrollWidth;
+                function onMouseMove(e) {
+                    const dx = e.clientX - startX;
+                    let newLeft = startLeft + dx;
+                    // Giới hạn trong máy
+                    newLeft = Math.max(0, Math.min(newLeft, machineWidth - job.width));
+                    // Kiểm tra xung đột với job khác cùng máy
+                    let conflict = jobs.filter(j => j.id !== job.id && j.machineIndex === job.machineIndex).some(j => {
+                        return (newLeft < j.left + j.width && newLeft + job.width > j.left);
+                    });
+                    if (!conflict) {
+                        job.left = newLeft;
+                        bar.style.left = newLeft + 'px';
+                    }
+                }
+                function onMouseUp() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+            // Resize job
+            let handle = bar.querySelector('.resize-handle');
+            handle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const startX = e.clientX;
+                const startWidth = job.width;
+                const startLeft = job.left;
+                const machineRect = machineDiv.getBoundingClientRect();
+                const machineWidth = machineDiv.scrollWidth;
+                function onMouseMove(e) {
+                    const dx = e.clientX - startX;
+                    let newWidth = startWidth + dx;
+                    newWidth = Math.max(20, Math.min(newWidth, machineWidth - startLeft)); // không vượt quá máy
+                    // Kiểm tra xung đột với job khác (bên phải)
+                    let conflict = jobs.filter(j => j.id !== job.id && j.machineIndex === job.machineIndex).some(j => {
+                        return (startLeft < j.left + j.width && startLeft + newWidth > j.left);
+                    });
+                    if (!conflict) {
+                        job.width = newWidth;
+                        bar.style.width = newWidth + 'px';
+                    }
+                }
+                function onMouseUp() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+            machineDiv.appendChild(bar);
+        }
+
+        function attachMachineDrop() {
+            let machineTls = document.querySelectorAll('.machine-timeline');
+            machineTls.forEach(tl => {
+                tl.addEventListener('dragover', (e) => e.preventDefault());
+                tl.addEventListener('drop', (e) => {
                     e.preventDefault();
                     const woId = e.dataTransfer.getData('text/plain');
-                    const wo = woList.find(w => w.id === woId);
-                    if (!wo || assignedWO.has(wo.id)) return;
+                    const wo = woData.find(w => w.id === woId);
+                    if (!wo || wo.placed) return;
 
-                    // Lấy vị trí thả
-                    const props = timeline.getEventProperties(e);
-                    const group = props.group; // group id (0-7)
-                    if (group === undefined) return; // thả ngoài vùng máy
+                    let slot = e.target.closest('.time-slot');
+                    if (!slot) return;
+                    let machineIndex = parseInt(slot.dataset.machine);
+                    let day = parseInt(slot.dataset.day);
+                    let shift = slot.dataset.shift;
 
-                    // Thời gian thả (là thời điểm chuột)
-                    let start = props.time;
-                    if (!start) start = new Date(); // fallback
+                    // Tính left bắt đầu của ngày
+                    let leftStartOfDay = 0;
+                    for (let d = 0; d < day; d++) {
+                        leftStartOfDay += (8 + (otDays.has(d)?4:0)) * pxPerHour;
+                    }
+                    let shiftOffsets = { morning: 0, afternoon: 4 * pxPerHour, ot: 8 * pxPerHour };
+                    let shiftStart = leftStartOfDay + (shiftOffsets[shift] || 0);
+                    
+                    let slotRect = slot.getBoundingClientRect();
+                    let machineRect = tl.getBoundingClientRect();
+                    let mouseX = e.clientX - machineRect.left;
+                    let left = Math.min(shiftStart + slot.offsetWidth - 10, Math.max(shiftStart, mouseX - 20));
 
-                    const end = new Date(start.getTime() + wo.estimatedHours * 3600000);
+                    let gioCan = tinhThoiGianCan(wo);
+                    let width = gioCan * pxPerHour;
 
-                    // Tạo item mới
-                    const newItem = {
-                        id: wo.id,
-                        group: group,
-                        start: start,
-                        end: end,
-                        content: `${wo.soWO} - ${wo.tenSanPham} (${wo.kichThuoc})`,
-                        className: 'production-task',
+                    // Kiểm tra xung đột
+                    let conflict = jobs.filter(j => j.machineIndex === machineIndex).some(j => {
+                        return (left < j.left + j.width && left + width > j.left);
+                    });
+                    if (conflict) {
+                        alert('Khoảng thời gian này đã có việc khác!');
+                        return;
+                    }
+
+                    let newJob = {
+                        id: 'job_' + Math.random().toString(36).substr(2, 8),
+                        woCode: wo.woCode,
+                        tenSp: wo.tenSp,
+                        kichThuoc: wo.kichThuoc,
+                        khachHang: wo.khachHang,
+                        soLuong: wo.soLuong,
+                        thoiGianCan: gioCan,
+                        machineIndex: machineIndex,
+                        left: left,
+                        width: width,
+                        color: `hsl(${Math.random()*360}, 70%, 60%)`,
                     };
-                    timelineItems.add(newItem);
-                    assignedWO.add(wo.id);
-                    renderWOPool();
-                });
-
-                // Lắng nghe sự kiện khi item bị xóa (ví dụ nhấn Delete hoặc dùng nút Cut)
-                timeline.on('remove', (props) => {
-                    props.items.forEach(itemId => {
-                        assignedWO.delete(itemId);
-                    });
-                    renderWOPool();
-                });
-
-                // Khi item thay đổi (move, resize) - có thể cập nhật nếu cần
-            }
-
-            // Tạo dropdown các ngày để chọn tăng ca
-            function renderOvertimeDays() {
-                const container = document.getElementById('overtimeDays');
-                container.innerHTML = '';
-                for (let i = 0; i < 6; i++) {
-                    const day = new Date(startDate);
-                    day.setDate(startDate.getDate() + i);
-                    const dateStr = day.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
-                    const checked = selectedOvertimeDays.includes(i) ? 'checked' : '';
-                    const div = document.createElement('div');
-                    div.className = 'day-checkbox';
-                    div.innerHTML = `
-                        <input type="checkbox" id="ot_day_${i}" value="${i}" ${checked}>
-                        <label for="ot_day_${i}">${dateStr}</label>
-                    `;
-                    container.appendChild(div);
-                }
-            }
-
-            // Áp dụng tăng ca cho các ngày được chọn
-            function applyOvertime() {
-                // Lấy các checkbox được chọn
-                const checkboxes = document.querySelectorAll('#overtimeDays input[type="checkbox"]:checked');
-                selectedOvertimeDays = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
-                
-                // Xóa các background items cũ
-                const backgroundItems = timelineItems.get({
-                    filter: item => item.className === 'overtime-bg'
-                });
-                backgroundItems.forEach(item => timelineItems.remove(item.id));
-
-                // Thêm background cho mỗi ngày được chọn
-                selectedOvertimeDays.forEach(dayIndex => {
-                    const dayStart = new Date(startDate);
-                    dayStart.setDate(startDate.getDate() + dayIndex);
-                    const otStart = new Date(dayStart);
-                    otStart.setHours(17, 30, 0);
-                    const otEnd = new Date(dayStart);
-                    otEnd.setHours(21, 30, 0);
-
-                    timelineItems.add({
-                        id: `ot_bg_${dayIndex}`,
-                        start: otStart,
-                        end: otEnd,
-                        content: '',
-                        className: 'overtime-bg',
-                        type: 'background',
-                        style: 'background-color: rgba(255,193,7,0.15); border: none;',
-                    });
-                });
-
-                // Đóng dropdown
-                document.getElementById('overtimeDropdown').classList.remove('show');
-            }
-
-            // Xử lý nút Cut
-            function cutSelected() {
-                const selection = timeline.getSelection();
-                if (selection && selection.items && selection.items.length > 0) {
-                    const itemId = selection.items[0];
-                    const item = timelineItems.get(itemId);
-                    if (item) {
-                        copiedItem = { ...item }; // sao chép để paste
-                        timelineItems.remove(itemId);
-                        assignedWO.delete(itemId);
-                        renderWOPool();
-                    }
-                }
-            }
-
-            // Copy
-            function copySelected() {
-                const selection = timeline.getSelection();
-                if (selection && selection.items && selection.items.length > 0) {
-                    const itemId = selection.items[0];
-                    const item = timelineItems.get(itemId);
-                    if (item) {
-                        copiedItem = { ...item };
-                    }
-                }
-            }
-
-            // Paste: tạo mới với id mới, cùng group, bắt đầu sau item cũ 1 giờ
-            function pasteItem() {
-                if (!copiedItem) return;
-                const newStart = new Date(copiedItem.end.getTime() + 3600000); // +1h
-                const newEnd = new Date(newStart.getTime() + (copiedItem.end - copiedItem.start));
-
-                const newId = `wo_copy_${Date.now()}_${Math.random()}`;
-                const newItem = {
-                    ...copiedItem,
-                    id: newId,
-                    start: newStart,
-                    end: newEnd,
-                };
-                timelineItems.add(newItem);
-                // Không đánh dấu assignedWO vì đây là bản sao
-            }
-
-            // Xử lý nút Process
-            document.getElementById('processBtn').addEventListener('click', async () => {
-                const file1Input = document.getElementById('file1');
-                const file2Input = document.getElementById('file2');
-                const file1 = file1Input.files[0];
-                const file2 = file2Input.files[0];
-                
-                if (!file1 || !file2) {
-                    alert('Vui lòng chọn cả 2 file!');
-                    return;
-                }
-
-                // Tự động phân biệt file theo tên (nếu cần, nhưng không bắt buộc)
-                // Ở đây chúng ta dùng file1 và file2 theo thứ tự người dùng chọn
-                // Nhưng có thể kiểm tra tên để chắc chắn
-                if (!file1.name.includes('QUAN LY SAN XUAT') && !file1.name.includes('2026')) {
-                    console.warn('File 1 có thể không đúng: ', file1.name);
-                }
-                if (!file2.name.includes('NHAT KY SAN XUAT') && !file2.name.includes('TDB')) {
-                    console.warn('File 2 có thể không đúng: ', file2.name);
-                }
-
-                try {
-                    // Đọc file2 trước để có map thời gian
-                    const wb2 = await readFile(file2);
-                    parseFile2(wb2);
-
-                    const wb1 = await readFile(file1);
-                    woList = parseFile1(wb1);
-
-                    // Reset assigned
-                    assignedWO.clear();
-                    // Xóa hết item trong timeline
-                    timelineItems.clear();
-                    // Render pool
-                    renderWOPool();
-
-                    alert('Đã xử lý thành công! Có ' + woList.length + ' đơn hàng.');
-                } catch (err) {
-                    console.error(err);
-                    alert('Lỗi xử lý file: ' + err.message);
-                }
-            });
-
-            // Khởi tạo timeline và các sự kiện khi trang load
-            window.addEventListener('load', () => {
-                initTimeline();
-                renderOvertimeDays();
-
-                // Gắn sự kiện cho các nút
-                document.getElementById('cutBtn').addEventListener('click', cutSelected);
-                document.getElementById('copyBtn').addEventListener('click', copySelected);
-                document.getElementById('pasteBtn').addEventListener('click', pasteItem);
-
-                // Dropdown tăng ca
-                const overtimeBtn = document.getElementById('overtimeBtn');
-                const dropdown = document.getElementById('overtimeDropdown');
-                overtimeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    dropdown.classList.toggle('show');
-                });
-
-                document.getElementById('applyOvertime').addEventListener('click', applyOvertime);
-                document.getElementById('closeDropdown').addEventListener('click', () => {
-                    dropdown.classList.remove('show');
-                });
-
-                // Đóng dropdown khi click ra ngoài
-                window.addEventListener('click', (e) => {
-                    if (!overtimeBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                        dropdown.classList.remove('show');
-                    }
+                    jobs.push(newJob);
+                    wo.placed = true;
+                    drawJobBar(newJob);
+                    renderWOList();
                 });
             });
+        }
 
-        })();
-    </script>
+        function rebuildTimeline() {
+            timelineGrid.innerHTML = '';
+            buildTimeline();
+            updateOtDaySelect();
+        }
+
+        function setTotalDays(n) {
+            if (n < 1) n = 1;
+            if (n > 14) n = 14;
+            totalDays = n;
+            rebuildTimeline();
+        }
+
+        function updateOtDaySelect() {
+            let options = '';
+            for (let i=0; i<totalDays; i++) {
+                let d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
+                let label = d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' });
+                options += `<option value="${i}">Ngày ${i+1} (${label})</option>`;
+            }
+            otDaySelect.innerHTML = options;
+        }
+
+        // Thêm / bớt OT
+        addOtBtn.addEventListener('click', () => {
+            let day = parseInt(otDaySelect.value);
+            if (otDays.has(day)) {
+                alert('Ngày này đã có tăng ca');
+                return;
+            }
+            otDays.add(day);
+            rebuildTimeline();
+        });
+
+        removeOtBtn.addEventListener('click', () => {
+            let day = parseInt(otDaySelect.value);
+            if (!otDays.has(day)) {
+                alert('Ngày này không có tăng ca');
+                return;
+            }
+            otDays.delete(day);
+            rebuildTimeline();
+        });
+
+        // Nút Cắt (chia đôi job)
+        cutBtn.addEventListener('click', () => {
+            if (!selectedJobId) { alert('Chọn một công việc'); return; }
+            let job = jobs.find(j => j.id === selectedJobId);
+            if (!job) return;
+            // Chia đôi width
+            let newWidth = Math.floor(job.width / 2);
+            if (newWidth < 20) { alert('Quá nhỏ để chia'); return; }
+            let oldWidth = job.width;
+            job.width = newWidth;
+            // Tạo job mới ngay sau job cũ
+            let newJob = {
+                ...job,
+                id: 'job_' + Math.random().toString(36).substr(2, 8),
+                left: job.left + newWidth,
+                width: oldWidth - newWidth,
+                color: `hsl(${Math.random()*360}, 70%, 60%)`,
+            };
+            // Kiểm tra xung đột
+            let conflict = jobs.filter(j => j.machineIndex === job.machineIndex && j.id !== job.id).some(j => {
+                return (newJob.left < j.left + j.width && newJob.left + newJob.width > j.left);
+            });
+            if (conflict) {
+                alert('Không thể chia vì bị chồng lên job khác');
+                job.width = oldWidth; // hoàn lại
+                return;
+            }
+            jobs.push(newJob);
+            // Cập nhật lại job cũ
+            document.getElementById(`job-${job.id}`)?.remove();
+            drawJobBar(job);
+            drawJobBar(newJob);
+            // Không thay đổi trạng thái placed của WO (vẫn giữ)
+            selectedJobId = null;
+        });
+
+        // Xóa job
+        deleteBtn.addEventListener('click', () => {
+            if (!selectedJobId) { alert('Chọn công việc'); return; }
+            let job = jobs.find(j => j.id === selectedJobId);
+            if (job) {
+                document.getElementById(`job-${selectedJobId}`)?.remove();
+                jobs = jobs.filter(j => j.id !== selectedJobId);
+                let wo = woData.find(w => w.woCode === job.woCode);
+                if (wo) wo.placed = false;
+                renderWOList();
+                selectedJobId = null;
+            }
+        });
+
+        // Xuất ảnh
+        exportImgBtn.addEventListener('click', () => {
+            html2canvas(document.querySelector('.workspace'), { scale: 1.2, backgroundColor: '#0f111c' }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'kehoach_sanxuat.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            });
+        });
+
+        // Thêm/bớt ngày
+        addDayBtn.addEventListener('click', () => setTotalDays(totalDays+1));
+        removeDayBtn.addEventListener('click', () => setTotalDays(totalDays-1));
+
+        // Khởi tạo
+        setTotalDays(3);
+    })();
+</script>
 </body>
 </html>
